@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+<title>Cricket Fielding & Terminology Dashboard</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #eef2f5;
+        margin: 0;
+        padding: 20px 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-x: hidden;
+    }
+
+    /* Main Controls */
+    .controls {
+        background: white;
+        padding: 8px 15px;
+        border-radius: 40px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        margin-bottom: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .toggle-btn {
+        padding: 10px 20px;
+        border: none;
+        background-color: transparent;
+        color: #555;
+        border-radius: 30px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 15px;
+        transition: all 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .toggle-btn.active {
+        background-color: #1b5e20;
+        color: white;
+        box-shadow: 0 4px 10px rgba(27, 94, 32, 0.3);
+    }
+
+    /* Sub Controls */
+    .sub-controls {
+        background: #fff;
+        padding: 6px 12px;
+        border-radius: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .sub-btn {
+        padding: 8px 16px;
+        border: 1px solid #ddd;
+        background-color: #fafafa;
+        color: #444;
+        border-radius: 20px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s ease;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    .sub-btn.active {
+        background-color: #66bb6a;
+        color: white;
+        border-color: #66bb6a;
+    }
+
+    /* Field Base */
+    .field-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 800px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+    }
+
+    .field {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #2e7d32;
+        border-radius: 50%;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        overflow: hidden;
+    }
+
+    .infield-circle {
+        position: absolute;
+        top: 15%;
+        left: 20%;
+        width: 60%;
+        height: 70%;
+        background-color: #43a047;
+        border: 1.5px solid rgba(255, 255, 255, 0.5);
+        border-radius: 50%;
+    }
+
+    .close-infield {
+        position: absolute;
+        top: 30%;
+        left: 35%;
+        width: 30%;
+        height: 40%;
+        background-color: #66bb6a;
+        border: 1.5px dotted rgba(255, 255, 255, 0.6);
+        border-radius: 50%;
+    }
+
+    .center-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        border-left: 1px dashed rgba(255, 0, 0, 0.4);
+    }
+
+    .pitch {
+        position: absolute;
+        top: 40%;
+        left: 47%;
+        width: 6%;
+        height: 20%;
+        background-color: #e6d39a;
+        border-radius: 2px;
+        z-index: 5;
+    }
+
+    /* Layers */
+    .layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transition: opacity 0.3s ease;
+        opacity: 0;
+        pointer-events: none; 
+    }
+    
+    .layer.active {
+        opacity: 1;
+    }
+
+    .layer.active .marker,
+    .layer.active .term-badge {
+        pointer-events: auto;
+    }
+
+    /* Position Markers (Now Native Buttons for flawless mobile clicking) */
+    .marker {
+        position: absolute;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        cursor: pointer;
+        transform: translate(-50%, -50%);
+        transition: transform 0.2s ease;
+        z-index: 10;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        background: transparent;
+        border: none;
+        outline: none;
+        padding: 12px; /* Fat finger hit area */
+        margin: -12px;
+        font-family: inherit;
+    }
+
+    @media (hover: hover) {
+        .marker:hover { transform: translate(-50%, -50%) scale(1.15); }
+        .close-btn:hover { color: #333; }
+    }
+
+    .dot {
+        width: 14px;
+        height: 14px;
+        background-color: #ff3b30;
+        border-radius: 50%;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        border: 2px solid white;
+    }
+
+    .label {
+        color: #222;
+        font-weight: 800;
+        font-size: 13px;
+        white-space: nowrap;
+        margin-left: 8px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 4px 8px;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .marker.reverse {
+        flex-direction: row-reverse;
+    }
+    .marker.reverse .label {
+        margin-left: 0;
+        margin-right: 8px;
+    }
+
+    /* Terminology Badges */
+    .term-badge {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background-color: rgba(255, 255, 255, 0.95);
+        color: #111;
+        font-weight: 800;
+        font-size: 14px;
+        padding: 5px 12px;
+        border-radius: 20px;
+        box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+        white-space: nowrap;
+        z-index: 25;
+    }
+    
+    .term-badge.large {
+        font-size: 16px;
+        padding: 8px 16px;
+        background-color: #fff;
+        border: 2px solid #1b5e20;
+    }
+
+    .term-svg {
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        z-index: 20;
+    }
+    .term-line {
+        stroke: #fff;
+        stroke-width: 2.5;
+        fill: none;
+        filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.5));
+    }
+
+    .diagram-note {
+        position: absolute;
+        top: 86%; 
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60%;
+        text-align: center;
+        color: white;
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 1.5;
+        text-shadow: 0px 2px 4px rgba(0,0,0,0.8);
+        z-index: 30;
+    }
+
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 9999; /* Brought to the very front */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px); /* For iOS Safari */
+        overflow-y: auto;
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 15vh auto; /* Responsive vertical margin */
+        padding: 25px;
+        border-radius: 16px;
+        width: 85%;
+        max-width: 500px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        position: relative;
+    }
+    
+    .close-btn {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        color: #999;
+        font-size: 36px;
+        font-weight: bold;
+        cursor: pointer;
+        padding: 10px;
+        line-height: 20px;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .modal h2 { margin-top: 0; color: #1b5e20; border-bottom: 3px solid #66bb6a; padding-bottom: 12px; font-size: 24px; }
+    .modal p { margin: 0 0 15px 0; line-height: 1.6; color: #444; font-size: 15px; }
+
+    /* Mobile Responsive Sizing */
+    @media (max-width: 600px) {
+        .label { font-size: 11px; padding: 4px 8px; }
+        .dot { width: 14px; height: 14px; }
+        .term-badge { font-size: 11px; padding: 4px 8px; }
+        .term-badge.large { font-size: 13px; }
+        .diagram-note { font-size: 11px; width: 75%; }
+        .sub-btn { font-size: 12px; padding: 8px 14px; }
+        .toggle-btn { font-size: 14px; padding: 10px 18px; }
+        
+        .modal-content { margin: 10vh auto; padding: 20px; width: 85%; }
+        .modal h2 { font-size: 20px; }
+        .modal p { font-size: 14px; }
+    }
+</style>
+</head>
+<body>
+
+<div class="controls">
+    <button class="toggle-btn active" id="btn-positions" onclick="setMainView('positions')">Fielding Positions</button>
+    <button class="toggle-btn" id="btn-terminology" onclick="setMainView('terminology')">Field Terminology</button>
+</div>
+
+<div class="sub-controls" id="pos-sub-controls" style="display: flex;">
+    <button class="sub-btn active" id="btn-pos-infield" onclick="setPosView('infield')">Infield (Ring)</button>
+    <button class="sub-btn" id="btn-pos-boundary" onclick="setPosView('boundary')">Boundary Riders</button>
+    <button class="sub-btn" id="btn-pos-all" onclick="setPosView('all')">Show All</button>
+</div>
+
+<div class="sub-controls" id="term-sub-controls" style="display: none;">
+    <button class="sub-btn active" id="btn-zones" onclick="setTermView('zones')">Zones & Sides</button>
+    <button class="sub-btn" id="btn-angles" onclick="setTermView('angles')">Angles</button>
+</div>
+
+<div class="field-wrapper">
+    <div class="field">
+        <div class="infield-circle"></div>
+        <div class="close-infield"></div>
+        <div class="center-line"></div>
+        <div class="pitch"></div>
+
+        <!-- Markers are now Native HTML Buttons! -->
+        <div id="layer-pos-infield" class="layer active">
+            <button class="marker" style="top: 38%; left: 50%;" onclick="openModal('Wicketkeeper')"><div class="dot"></div><div class="label">WK</div></button>
+            <button class="marker" style="top: 64%; left: 50%;" onclick="openModal('Bowler')"><div class="dot"></div><div class="label">BOWLER</div></button>
+            <button class="marker" style="top: 32%; left: 46%;" onclick="openModal('Slip')"><div class="dot"></div><div class="label">Slips</div></button>
+            <button class="marker" style="top: 40%; left: 25%;" onclick="openModal('Point')"><div class="dot"></div><div class="label">Point</div></button>
+            <button class="marker" style="top: 36%; left: 35%;" onclick="openModal('Gully')"><div class="dot"></div><div class="label">Gully</div></button>
+            <button class="marker" style="top: 26%; left: 38%;" onclick="openModal('Short Third Man')"><div class="dot"></div><div class="label">Short third man</div></button>
+            <button class="marker" style="top: 55%; left: 25%;" onclick="openModal('Cover')"><div class="dot"></div><div class="label">Cover</div></button>
+            <button class="marker" style="top: 68%; left: 38%;" onclick="openModal('Mid-Off')"><div class="dot"></div><div class="label">Mid-off</div></button>
+            <button class="marker" style="top: 48%; left: 68%;" onclick="openModal('Short Mid-Wicket')"><div class="dot"></div><div class="label">Short mid-wicket</div></button>
+            <button class="marker" style="top: 58%; left: 78%;" onclick="openModal('Mid-Wicket')"><div class="dot"></div><div class="label">Mid-wicket</div></button>
+            <button class="marker reverse" style="top: 40%; left: 70%;" onclick="openModal('Square Leg')"><div class="dot"></div><div class="label">Square leg</div></button>
+            <button class="marker" style="top: 68%; left: 62%;" onclick="openModal('Mid-On')"><div class="dot"></div><div class="label">Mid-on</div></button>
+        </div>
+
+        <div id="layer-pos-boundary" class="layer">
+            <button class="marker" style="top: 18%; left: 25%;" onclick="openModal('Third Man (Deep)')"><div class="dot"></div><div class="label">Deep third man</div></button>
+            <button class="marker reverse" style="top: 20%; left: 82%;" onclick="openModal('Fine Leg')"><div class="dot"></div><div class="label">Fine leg</div></button>
+            <button class="marker reverse" style="top: 40%; left: 88%;" onclick="openModal('Deep Square Leg')"><div class="dot"></div><div class="label">Deep square leg</div></button>
+            <button class="marker reverse" style="top: 65%; left: 86%;" onclick="openModal('Deep Mid-Wicket')"><div class="dot"></div><div class="label">Deep mid-wicket</div></button>
+            <button class="marker" style="top: 88%; left: 30%;" onclick="openModal('Long-Off & Long-On')"><div class="dot"></div><div class="label">Long off</div></button>
+            <button class="marker" style="top: 88%; left: 68%;" onclick="openModal('Long-Off & Long-On')"><div class="dot"></div><div class="label">Long on</div></button>
+        </div>
+
+        <div id="layer-term-zones" class="layer">
+            <div class="term-badge large" style="top: 10%; left: 50%;">Outfield</div>
+            <div class="term-badge large" style="top: 25%; left: 50%;">Infield</div>
+            <div class="term-badge large" style="top: 34%; left: 50%;">Close-Infield</div>
+            <div class="term-badge" style="top: 73%; left: 28%;">Off-side</div>
+            <div class="term-badge" style="top: 73%; left: 72%;">Leg-side</div>
+            <div class="diagram-note">* Note: Sides mapped for a right-handed batter. For a left-hander, the sides are reversed.</div>
+        </div>
+
+        <div id="layer-term-angles" class="layer">
+            <svg class="term-svg">
+                <defs>
+                    <marker id="arrow-w2" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#fff" /></marker>
+                    <marker id="arrow-start-w2" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto"><polygon points="10 0, 0 3.5, 10 7" fill="#fff" /></marker>
+                </defs>
+                <line x1="250" y1="120" x2="350" y2="120" class="term-line" />
+                <line x1="450" y1="120" x2="550" y2="120" class="term-line" />
+                <line x1="180" y1="340" x2="370" y2="340" class="term-line" stroke-dasharray="6,6" />
+                <path d="M 500 50 Q 820 400 500 750" class="term-line" marker-start="url(#arrow-start-w2)" marker-end="url(#arrow-w2)" />
+            </svg>
+            <div class="term-badge" style="top: 15%; left: 37%;">Wider</div>
+            <div class="term-badge" style="top: 15%; left: 50%;">Finer</div>
+            <div class="term-badge" style="top: 15%; left: 63%;">Wider</div>
+            <div class="term-badge" style="top: 36%; left: 27%;">Backward</div>
+            <div class="term-badge" style="top: 49%; left: 27%;">Forward</div>
+            <div class="term-badge" style="top: 50%; left: 85%;">Squarer</div>
+            <div class="term-badge" style="top: 94%; left: 50%;">Straighter</div>
+            <div class="term-badge" style="top: 5%; left: 50%;">Longer</div>
+        </div>
+
+    </div>
+</div>
+
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle">Position Title</h2>
+        <div id="modalBody">
+            <p id="modalDescription" style="font-size: 16px; line-height: 1.7; color: #444;"></p>
+        </div>
+    </div>
+</div>
+
+<script>
+function setMainView(view) {
+    document.getElementById('btn-positions').classList.toggle('active', view === 'positions');
+    document.getElementById('btn-terminology').classList.toggle('active', view === 'terminology');
+    
+    document.getElementById('pos-sub-controls').style.display = view === 'positions' ? 'flex' : 'none';
+    document.getElementById('term-sub-controls').style.display = view === 'terminology' ? 'flex' : 'none';
+    
+    if (view === 'positions') {
+        document.getElementById('layer-term-zones').classList.remove('active');
+        document.getElementById('layer-term-angles').classList.remove('active');
+        setPosView('infield');
+    } else {
+        document.getElementById('layer-pos-infield').classList.remove('active');
+        document.getElementById('layer-pos-boundary').classList.remove('active');
+        setTermView('zones');
+    }
+}
+
+function setPosView(subView) {
+    document.getElementById('btn-pos-infield').classList.toggle('active', subView === 'infield');
+    document.getElementById('btn-pos-boundary').classList.toggle('active', subView === 'boundary');
+    document.getElementById('btn-pos-all').classList.toggle('active', subView === 'all');
+    
+    document.getElementById('layer-pos-infield').classList.toggle('active', subView === 'infield' || subView === 'all');
+    document.getElementById('layer-pos-boundary').classList.toggle('active', subView === 'boundary' || subView === 'all');
+}
+
+function setTermView(subView) {
+    document.getElementById('btn-zones').classList.toggle('active', subView === 'zones');
+    document.getElementById('btn-angles').classList.toggle('active', subView === 'angles');
+    
+    document.getElementById('layer-term-zones').classList.toggle('active', subView === 'zones');
+    document.getElementById('layer-term-angles').classList.toggle('active', subView === 'angles');
+}
+
+const fieldingData = {
+    "Wicketkeeper": { description: "You're the team's \"General,\" catching everything the batter misses and backing up all throws to the stumps! Against seamers, find that sweet spot so the ball carries to you at waist height; if it's hitting your chest, back up, and if it's hitting the floor, move in. For spin, stand right up to the stumps to look for a stumping if the batter's foot leaves the crease! Keep perfectly balanced with no walk-in until the ball is in your gloves." },
+    "Bowler": { description: "You are the star of the show right now! Deliver the ball, follow through cleanly, and immediately get ready to field anything hit straight back at you." },
+    "Slip": { description: "Your main gig is catching those sneaky \"edges\" that graze the side of the bat! For seamers, stand back level with the keeper, stay low, and keep your hands ready. When the spinners are on, move closer and slightly wider since the ball will loop more than zip. There's no walk-in here—you must stay completely still to see the ball clearly off the bat." },
+    "Gully": { description: "You're on rocket duty, catching high-speed, \"squarer\" edges that fly past the slips! Against seam, stand level with the slips but wider towards point, and stay super low for those \"rockets\". You'll rarely be used for spin, usually moving to short third man or short mid-wicket instead. Stay perfectly still with no walk-in to track the fast-moving edge." },
+    "Short Third Man": { description: "Think of yourself as a \"safety net,\" stopping \"dabs\" and \"thick edges\" from becoming easy singles. For seamers, stand halfway between the keeper and the boundary. For spin, stand about 10–12 yards back to stop the batter from \"guiding\" the ball into the gap. A walk-in is a must here to get your weight forward and keep you alert!" },
+    "Point": { description: "You are the \"Wall,\" stopping the powerful horizontal \"Cut\" shot! Stand square with the batter for seamers and expect the ball to arrive very fast. Creep in a few steps for spin since you're looking for mistimed shots that pop up. An aggressive walk-in is an absolute must here—take 2–3 rhythmic, powerful steps forward as the bowler runs in to build your attacking momentum!" },
+    "Cover": { description: "You are the \"Hunter,\" and your main goal is to stop the \"Drive\" and prevent any singles! Stay at a medium distance for seamers so you need to cover ground left and right. When spin is on, walk in even more to make the batter feel pressured. An aggressive walk-in is essential here—you should be moving forward powerfully as the ball is released to dominate the infield!" },
+    "Mid-Off": { description: "You're stopping straight hits and acting as the main communicator with the bowler! For seam, stand deep enough to save a boundary, but close enough to stop a single. Move closer to the pitch for spin to discourage the \"tipping\" of a quick run. A walk-in is a must here—walk straight toward the batter to cut off the angle and keep your momentum up." },
+    "Mid-On": { description: "Welcome to being the \"Leg-Side Bodyguard,\" stopping straight drives and covering \"caught and bowled\" chances! Stay alert for the \"flick\" off the pads against seamers. Move in closer for spin, since beginners often mistime spin into this mid-range area. Walking in is a must! Take 2–3 purposeful steps forward as the bowler releases the ball." },
+    "Short Mid-Wicket": { description: "You're in a \"pressure\" position, hunting for mistimed \"dinks\" and \"leading edges\" near the batter! Stand roughly 8–10 yards from the batter for seamers to kill off easy-scoring gaps. Move even closer for spin (if safe!) and watch for the ball \"popping up\" off the bat or pad. A walk-in is an absolute must here so you are already moving forward to \"snatch\" a half-chance." },
+    "Mid-Wicket": { description: "You are protecting the leg-side \"scoring arc,\" stopping powerful shots and catching high \"skiers\"! Stand 15–20 yards back for seamers to react to hard-hit \"pull\" shots. For spin, stay alert for the ball being lofted high, as you are the primary catcher for big hits. An aggressive walk-in is a must! Take 2–3 large, powerful steps forward to help judge the flight and attack the ball." },
+    "Square Leg": { description: "Keep your eyes watching for \"Sweeps\" and \"Pull\" shots! Against seam, watch for the ball hit directly at your chest or stomach. For spin, watch the batter's knees—if they kneel to sweep, move quickly to intercept! Walking in is a must here; it keeps you focused on a shot that happens very suddenly and gets your weight on the balls of your feet." },
+    "Fine Leg": { description: "You're the boundary safety behind the batter on the leg-side! Stand right on the rope for seamers to stop \"4s\" from leg-side glances. Move \"squarer\" (to the side) for spin to cover where the sweep shot goes. Even on the rope, walking in is a must to keep your momentum going so you are ready to sprint left or right." },
+    "Third Man (Deep)": { description: "You are the \"Backstop\" on the off-side boundary! This is a crucial safety net for seamers to catch edges that beat the Slips and Keeper. Usually, this position is not used for beginners against spin. Even as a backstop, walking in is a must to keep you on your toes and ready to attack the ball!" },
+    "Long-Off & Long-On": { description: "Your job is protecting the straight boundaries! Stand on the rope for seamers and watch for the \"big heave\". Be ready to run in for spin, as batters often \"loft\" spinners without enough power to reach the rope. Walking in is a must out here too—keep your momentum moving forward so you can cover ground quickly." },
+    "Deep Square Leg": { description: "You are protecting the boundary against wayward bowling on the leg side and big, sweeping hits! If the ball beats the infield, it’s racing towards you. Stay on the balls of your feet and make sure walking in is a must to keep your momentum going so you are ready to sprint left or right to save the boundary!" },
+    "Deep Mid-Wicket": { description: "Welcome to \"Cow Corner\"—usually the busiest place on the field for beginners! Batters love to heave the ball to the leg side, making you the ultimate boundary safety net for massive \"slogs\" and pull shots. An aggressive walk-in is a must here—keep your momentum moving forward so you can sprint the boundary edge or run in for a dropping catch!" }
+};
+
+const modal = document.getElementById('infoModal');
+
+function openModal(position) {
+    document.getElementById('modalTitle').innerText = position;
+    if (fieldingData[position]) {
+        document.getElementById('modalDescription').innerText = fieldingData[position].description;
+        modal.style.display = "block";
+    }
+}
+
+function closeModal() {
+    modal.style.display = "none";
+}
+
+window.onclick = function(event) {
+    if (event.target == modal) {
+        closeModal();
+    }
+}
+</script>
+
+</body>
+</html>
